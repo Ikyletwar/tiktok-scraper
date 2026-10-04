@@ -1,11 +1,11 @@
-# 💬 TikTok Comment Scraper
+# 🎨 AM Preset Finder
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Author](https://img.shields.io/badge/author-Nihongo-red.svg)](https://github.com/Ikyletwar)
 [![Made with ❤️](https://img.shields.io/badge/made%20with-❤️-red.svg)]()
 
-CLI tool untuk mengambil **semua komentar utama + semua balasan** dari video TikTok apa pun, dengan **filter link (`https`) langsung saat fetch (streaming)**, progress live, dan ekspor ganda **JSON (nested) + Excel (flat)**.
+CLI tool untuk menemukan **link preset Alight Motion** di komentar TikTok — filter domain cerdas (`alightcreative.com` / `alight.link` / `drive.google.com`) langsung saat fetch (streaming), progress live, dan ekspor ganda **JSON (nested) + Excel (flat)**.
 
 Dibuat oleh: [Nihongo](https://github.com/Ikyletwar).
 
@@ -43,7 +43,7 @@ Dibuat oleh: [Nihongo](https://github.com/Ikyletwar).
 | 4 | ⚡ 2 mode fetch | `lengkap` (cek balasan walau induk tidak match) vs `hemat` (skip request balasan jika induk tidak match) |
 | 5 | 📊 Statistik video | Caption, author, views, likes, comment count, shares, create time via `api/video/detail/` |
 | 6 | 💾 Ekspor ganda | JSON nested (`comments[].replies[]`) + Excel flat (`Komentar Utama` / `Balasan`) |
-| 7 | 🧩 Class-based | Satu class `TikTokScraper` di `index.py`, mudah di-import sebagai library |
+| 7 | 🧩 Class-based | Satu class `AMPresetFinder` di `index.py` (`TikTokScraper` tetap sebagai alias), mudah di-import sebagai library |
 | 8 | 🛡️ Error handling | `403` (privat/dihapus/rate-limit), timeout, JSON abnormal, `total_reply` kosong |
 | 9 | 🔧 Dependency checker | `server.py` cek + auto-`pip install` (`requests,pandas,pyfiglet,rich,jmespath,openpyxl`) |
 
@@ -51,7 +51,7 @@ Dibuat oleh: [Nihongo](https://github.com/Ikyletwar).
 
 ## 🖼️ Demo / Screenshot
 
-![TikTok Scraper Demo](img/cmd.png)
+![AM Preset Finder Demo](img/cmd.png)
 
 ---
 
@@ -59,7 +59,7 @@ Dibuat oleh: [Nihongo](https://github.com/Ikyletwar).
 
 ```
 index.py
-└── class TikTokScraper
+└── class AMPresetFinder (alias: TikTokScraper)
     ├── __init__()                    # requests.Session + header browser Chrome 108
     ├── _print_banner()
     ├── _get_video_id(url)            # dukung vm.tiktok.com / vt.tiktok.com (HEAD redirect) + /video/ID
@@ -161,13 +161,13 @@ Alur interaktif:
    - `» Hanya ambil komentar berisi link (https)? Filter langsung saat fetch [y/n] (y):`
    - Jika `y`, jawab mode: `» Mode hemat ...? y=cepat tapi balasan-link bisa hilang, n=lengkap [y/n] (n):`
 4. Progress menampilkan `Scan` (total dipindai) vs `Match` (thread disimpan) secara live.
-5. Hasil tersimpan sebagai `tiktok_comments_<VIDEO_ID>.json` + `.xlsx`, lalu tabel 20 teratas + layar `COMPLETE!` ditampilkan.
+5. Hasil tersimpan sebagai `am_preset_<VIDEO_ID>.json` + `.xlsx`, lalu tabel 20 teratas + layar `COMPLETE!` ditampilkan.
 
 Sebagai library:
 
 ```python
-from index import TikTokScraper
-s = TikTokScraper()
+from index import AMPresetFinder
+s = AMPresetFinder()
 s.video_id = "7686108135475580181"
 data = s._get_all_comments_and_replies(keyword="https", skip_replies_if_parent_miss=False)
 print(len(data))
@@ -199,11 +199,23 @@ s._filter_by_keyword(all_comments, keyword="drive.google")
 
 Pencocokan selalu **case-insensitive** dan **aman terhadap `None`**.
 
+### Daftar domain preset terkonfirmasi
+
+```python
+PRESET_DOMAINS = [
+    "alightcreative.com",  # Link Resmi: alightcreative.com/am/share/... → buka otomatis di AM
+    "alight.link",         # Link pendek resmi → impor otomatis ke AM
+    "drive.google.com",    # File XML mentah: drive.google.com/file/d/... → unduh + impor manual
+]
+```
+
+Klasifikasi otomatis per URL (`kind`): `alight_link` (share resmi), `drive_xml` (XML Drive), `preset_link` (domain preset tapi pola lain), `other_link` (diabaikan filter). Contoh nyata yang lolos: `https://alightcreative.com/am/share/u/.../p/...`, `https://alight.link/7sgfjYKk2fK1CqUu8`, `https://drive.google.com/file/d/1jONrJttOMJBUp_UTuKnC7JAGRoW8yq4F/view`. Yang dibuang: `vt.tiktok.com`, link non-preset lain. Setiap komentar yang disimpan membawa field `preset_links: [{url, domain, kind}]` di JSON dan kolom `Link_Preset` + `Jenis_Preset` di Excel.
+
 ---
 
 ## 📄 Skema Output
 
-### JSON — `tiktok_comments_<VIDEO_ID>.json`
+### JSON — `am_preset_<VIDEO_ID>.json`
 
 ```json
 {
@@ -239,7 +251,7 @@ Pencocokan selalu **case-insensitive** dan **aman terhadap `None`**.
 }
 ```
 
-### Excel — `tiktok_comments_<VIDEO_ID>.xlsx`
+### Excel — `am_preset_<VIDEO_ID>.xlsx`
 
 Flat, satu baris per komentar/balasan:
 
@@ -256,8 +268,8 @@ Video `7686108135475580181` (mode lengkap, keyword `https`):
 
 ```
 ✅ Scan 268 komentar, dapat 22 thread + 16 balasan mengandung 'https'.
-💾 tiktok_comments_7686108135475580181.json ✅
-💾 tiktok_comments_7686108135475580181.xlsx ✅
+💾 am_preset_7686108135475580181.json ✅
+💾 am_preset_7686108135475580181.xlsx ✅
 ```
 
 Isi dominan: `https://alightcreative.com/am/share/...` (bagi preset XML), plus `https://vt.tiktok.com/...`.
@@ -269,13 +281,13 @@ Video `7554738914985020690` (17 induk / 17 balasan) → `0` match `https`/`http`
 
 ```
 tiktok-scraper/
-├── index.py        # scraper utama (class TikTokScraper)
+├── index.py        # finder utama (class AMPresetFinder)
 ├── server.py       # dependency checker + auto-install
 ├── README.md       # dokumentasi ini
-├── .gitignore      # __pycache__, *.pyc, output tiktok_comments_* 
+├── .gitignore      # __pycache__, *.pyc, output am_preset_* / tiktok_comments_* (legacy) 
 ├── img/
 │   └── cmd.png     # screenshot demo
-└── tiktok_comments_<ID>.json / .xlsx  # hasil (di-ignore git, tidak di-push)
+└── am_preset_<ID>.json / .xlsx  # hasil (di-ignore git, tidak di-push)
 ```
 
 ---

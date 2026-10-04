@@ -12,7 +12,9 @@ import json
 import jmespath
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Iterator, Optional
+import re
 import base64
+from urllib.parse import urlparse
 
 
 import pyfiglet
@@ -28,17 +30,28 @@ from rich.text import Text
 from rich.align import Align
 from rich.rule import Rule
 
-class TikTokScraper:
+class AMPresetFinder:
     """
-    Scraper TikTok modern berbasis Class untuk mengambil detail video,
-    semua komentar, dan semua balasan dengan tampilan CLI yang menarik.
+    AM Preset Finder berbasis Class untuk mengambil komentar TikTok yang
+    mengandung link preset Alight Motion, dengan tampilan CLI yang menarik.
+    Nama lama: TikTokScraper (tetap tersedia sebagai alias).
     """
-    
+
 
     API_VIDEO_DETAIL_URL = "https://www.tiktok.com/api/video/detail/"
     API_COMMENT_LIST_URL = "https://www.tiktok.com/api/comment/list/"
     API_REPLY_LIST_URL = "https://www.tiktok.com/api/comment/list/reply/"
     API_AID = "1988"
+
+    # Daftar domain preset yang telah dikonfirmasi.
+    PRESET_DOMAINS = [
+        "alightcreative.com",
+        "alight.link",
+        "drive.google.com",
+    ]
+
+    # Regex ekstraksi URL mentah dari teks komentar.
+    URL_RE = re.compile(r"https?://[^\s\)\]\}\"'<>]+", re.IGNORECASE)
 
     def __init__(self):
         """Inisialisasi scraper."""
@@ -65,13 +78,13 @@ class TikTokScraper:
         """Menampilkan banner dan disclaimer dengan desain yang lebih menarik dan warna cerah."""
         os.system('cls' if os.name == 'nt' else 'clear')
         
-        banner_text = pyfiglet.figlet_format("TikTok Scraper", font="slant")
+        banner_text = pyfiglet.figlet_format("AM Preset Finder", font="slant")
         self.console.print(Align.center(f"[bold bright_cyan]{banner_text}[/bold bright_cyan]"))
         
         info_panel = Panel(
             "[bold bright_yellow]Created By : Nihongo[/bold bright_yellow]",
-            title="[bold bright_magenta]TikTok Comment Scraper v4.1[/bold bright_magenta]",
-            subtitle="[dim bright_white]Modern Class-Based Scraper with Enhanced UI[/dim bright_white]",
+            title="[bold bright_magenta]AM Preset Finder v5.0[/bold bright_magenta]",
+            subtitle="[dim bright_white]Alight Motion Preset Finder with Smart Domain Filter[/dim bright_white]",
             border_style="bright_blue",
             width=80
         )
@@ -148,6 +161,58 @@ class TikTokScraper:
     def _format_number(self, num: int) -> str:
         """Format angka dengan pemisah ribuan."""
         return f"{num:,}"
+
+    @classmethod
+    def _clean_url(cls, url: str) -> str:
+        """Bersihkan trailing punctuation dari URL hasil regex."""
+        return url.rstrip('.,;!?)}\'"»”’')
+
+    @classmethod
+    def _domain_of(cls, url: str) -> str:
+        """Ambil domain bawah dari URL (tanpa www.)."""
+        try:
+            host = urlparse(url).netloc.lower().split(':')[0]
+            if host.startswith('www.'):
+                host = host[4:]
+            return host
+        except Exception:
+            return ""
+
+    @classmethod
+    def _classify_preset_url(cls, url: str) -> str:
+        """Klasifikasi jenis preset dari URL: alight_link / drive_xml / other_link."""
+        d = cls._domain_of(url)
+        low = url.lower()
+        if d == "alight.link" or (d == "alightcreative.com" and "/am/share/" in low):
+            return "alight_link"
+        if d == "drive.google.com":
+            return "drive_xml"
+        if d in ("alightcreative.com", "alight.link", "drive.google.com"):
+            return "preset_link"
+        return "other_link"
+
+    @classmethod
+    def extract_urls(cls, text: Optional[str]) -> List[str]:
+        """Ekstrak semua URL http(s) dari teks."""
+        if not text:
+            return []
+        return [cls._clean_url(u) for u in cls.URL_RE.findall(text)]
+
+    @classmethod
+    def extract_preset_links(cls, text: Optional[str], domains: Optional[List[str]] = None) -> List[Dict[str, str]]:
+        """Ekstrak hanya URL yang domainnya ada di daftar preset terkonfirmasi."""
+        doms = [d.lower() for d in (domains if domains is not None else cls.PRESET_DOMAINS)]
+        out = []
+        for url in cls.extract_urls(text):
+            d = cls._domain_of(url)
+            if any(d == x or d.endswith('.' + x) for x in doms):
+                out.append({"url": url, "domain": d, "kind": cls._classify_preset_url(url)})
+        return out
+
+    @classmethod
+    def has_preset_link(cls, text: Optional[str], domains: Optional[List[str]] = None) -> bool:
+        """True jika teks mengandung minimal 1 link preset terkonfirmasi."""
+        return len(cls.extract_preset_links(text, domains)) > 0
 # CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
@@ -282,14 +347,17 @@ class TikTokScraper:
         parsed_data['digg_count'] = parsed_data.get('digg_count', 0)
         parsed_data['total_reply'] = parsed_data.get('total_reply', 0)
         parsed_data['replies'] = []
+        parsed_data['preset_links'] = self.extract_preset_links(parsed_data.get('comment'))
+        parsed_data['preset_kinds'] = sorted({p['kind'] for p in parsed_data['preset_links']})
         
         return parsed_data
 
-    def _get_replies(self, comment_id: str, total_replies: int, progress: Progress, keyword: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Mengambil balasan untuk satu komentar. Jika keyword diisi, hanya balasan mengandung keyword yang disimpan (filter saat streaming)."""
+    def _get_replies(self, comment_id: str, total_replies: int, progress: Progress, keyword: Optional[str] = None, preset_domains: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Mengambil balasan. Jika preset_domains diisi, hanya balasan ber-link preset yang disimpan (filter domain cerdas saat streaming). Fallback keyword substring jika domains None."""
         replies_list = []
         cursor = 0
         kw = (keyword or "").lower() if keyword else ""
+        doms = [d.lower() for d in preset_domains] if preset_domains else None
         task_replies = progress.add_task(f"[dim] -> Mengambil {total_replies} balasan...", total=total_replies, visible=True)
 
         while True:
@@ -306,7 +374,11 @@ class TikTokScraper:
 
                 for reply in replies:
                     parsed = self._parse_comment(reply)
-                    if kw and kw not in (parsed.get('comment') or "").lower():
+                    if doms is not None:
+                        if not self.has_preset_link(parsed.get('comment'), doms):
+                            progress.update(task_replies, advance=1)
+                            continue
+                    elif kw and kw not in (parsed.get('comment') or "").lower():
                         progress.update(task_replies, advance=1)
                         continue
                     replies_list.append(parsed)
@@ -330,11 +402,13 @@ class TikTokScraper:
 # Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 
-    def _get_all_comments_and_replies(self, keyword: Optional[str] = None, skip_replies_if_parent_miss: bool = False) -> List[Dict[str, Any]]:
-        """Mengambil komentar utama dan balasannya. Jika keyword diisi, filter langsung saat streaming (tidak tampung semua dulu)."""
+    def _get_all_comments_and_replies(self, keyword: Optional[str] = None, skip_replies_if_parent_miss: bool = False, preset_domains: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Mengambil komentar utama dan balasannya. Jika preset_domains diisi, filter domain cerdas langsung saat streaming. Fallback keyword substring jika domains None."""
         all_comments = []
         cursor = 0
         kw = (keyword or "").lower() if keyword else ""
+        doms = [d.lower() for d in preset_domains] if preset_domains else None
+        use_smart = doms is not None
         total_scanned = 0
         total_replies_scanned = 0
         total_matched_replies = 0
@@ -364,26 +438,35 @@ class TikTokScraper:
                     for comment_json in comments:
                         comment_data = self._parse_comment(comment_json)
                         total_scanned += 1
-                        parent_match = (not kw) or (kw in (comment_data.get('comment') or "").lower())
+                        if use_smart:
+                            comment_data['preset_links'] = self.extract_preset_links(comment_data.get('comment'), doms)
+                            comment_data['preset_kinds'] = sorted({p['kind'] for p in comment_data['preset_links']})
+                            parent_match = len(comment_data['preset_links']) > 0
+                        else:
+                            parent_match = (not kw) or (kw in (comment_data.get('comment') or "").lower())
 
-                        if kw and not parent_match and skip_replies_if_parent_miss:
+                        if (use_smart or kw) and not parent_match and skip_replies_if_parent_miss:
                             # Mode hemat: induk tidak match -> buang, jangan fetch balasan sama sekali.
-                            progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🔗 Match:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan match:[/] [bright_white]{total_matched_replies}[/]")
+                            progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🎨 Preset:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan preset:[/] [bright_white]{total_matched_replies}[/]")
                             continue
 
                         if comment_data["total_reply"] > 0:
-                            replies = self._get_replies(comment_data['cid'], comment_data['total_reply'], progress, keyword=keyword if kw else None)
+                            replies = self._get_replies(comment_data['cid'], comment_data['total_reply'], progress, keyword=keyword if kw and not use_smart else None, preset_domains=doms if use_smart else None)
                             total_replies_scanned += comment_data["total_reply"]
                             total_matched_replies += len(replies)
+                            if use_smart:
+                                for r in replies:
+                                    r['preset_links'] = self.extract_preset_links(r.get('comment'), doms)
+                                    r['preset_kinds'] = sorted({p['kind'] for p in r['preset_links']})
                             comment_data["replies"] = replies
                         # Filter streaming: hanya simpan thread yang induk match atau ada balasan match
-                        if kw and not parent_match and not comment_data.get("replies"):
-                            progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🔗 Match:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan match:[/] [bright_white]{total_matched_replies}[/]")
+                        if (use_smart or kw) and not parent_match and not comment_data.get("replies"):
+                            progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🎨 Preset:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan preset:[/] [bright_white]{total_matched_replies}[/]")
                             continue
-                        if kw and parent_match and not comment_data.get("replies"):
+                        if (use_smart or kw) and parent_match and not comment_data.get("replies"):
                             comment_data["replies"] = []
                         all_comments.append(comment_data)
-                        progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🔗 Match:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan match:[/] [bright_white]{total_matched_replies}[/]" if kw else f"[bright_cyan]📥 Komentar:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan:[/] [bright_white]{total_matched_replies if kw else total_replies_scanned}[/]")
+                        progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🎨 Preset:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan preset:[/] [bright_white]{total_matched_replies}[/]" if (use_smart or kw) else f"[bright_cyan]📥 Komentar:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan:[/] [bright_white]{total_matched_replies if kw else total_replies_scanned}[/]")
                     
                     if not data.get("has_more", False):
                         progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=len(all_comments))
@@ -397,11 +480,35 @@ class TikTokScraper:
                     self.console.print(f"[bold bright_red]❌ Error:[/] {e}")
                     break
 
-        if kw:
+        if doms is not None:
+            self.console.print(f"\n[bold bright_green]✅ Scan {total_scanned} komentar, dapat {len(all_comments)} thread + {total_matched_replies} balasan preset {doms}.[/bold bright_green]")
+        elif kw:
             self.console.print(f"\n[bold bright_green]✅ Scan {total_scanned} komentar, dapat {len(all_comments)} thread + {total_matched_replies} balasan mengandung '{keyword}'.[/bold bright_green]")
         else:
             self.console.print(f"\n[bold bright_green]✅ Total {len(all_comments)} komentar utama dan {total_replies_scanned} balasan berhasil diambil.[/bold bright_green]")
         return all_comments
+
+    def _filter_by_preset_domains(self, comments_list: List[Dict[str, Any]], domains: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Filter pasca-proses berbasis domain preset (untuk kompatibilitas / reuse)."""
+        doms = [d.lower() for d in (domains if domains is not None else self.PRESET_DOMAINS)]
+        filtered = []
+        for c in comments_list:
+            c_links = self.extract_preset_links(c.get('comment'), doms)
+            matching_replies = []
+            for r in c.get('replies', []):
+                r_links = self.extract_preset_links(r.get('comment'), doms)
+                if r_links:
+                    nr = dict(r)
+                    nr['preset_links'] = r_links
+                    nr['preset_kinds'] = sorted({p['kind'] for p in r_links})
+                    matching_replies.append(nr)
+            if c_links or matching_replies:
+                new_c = dict(c)
+                new_c['preset_links'] = c_links
+                new_c['preset_kinds'] = sorted({p['kind'] for p in c_links})
+                new_c['replies'] = matching_replies if (matching_replies or not c_links) else []
+                filtered.append(new_c)
+        return filtered
 
     def _filter_by_keyword(self, comments_list: List[Dict[str, Any]], keyword: str = "https") -> List[Dict[str, Any]]:
         """Filter komentar dan balasan yang teksnya mengandung keyword (case-insensitive)."""
@@ -427,7 +534,7 @@ class TikTokScraper:
 
     def _save_to_json(self, data: dict):
         """Menyimpan data akhir ke file JSON."""
-        filename = f"tiktok_comments_{self.video_id}.json"
+        filename = f"am_preset_{self.video_id}.json"
         self.console.print(f"\n[cyan]💾 Menyimpan data JSON ke [bold bright_yellow]{filename}[/bold bright_yellow]...[/cyan]")
         try:
             with open(filename, 'w', encoding='utf-8') as f:
@@ -443,14 +550,18 @@ class TikTokScraper:
 # Karya ini dibuat sepenuhnya oleh kami
     def _save_to_excel(self, comments_list: List[Dict[str, Any]]):
         """Menyimpan data ke file Excel."""
-        filename = f"tiktok_comments_{self.video_id}.xlsx"
+        filename = f"am_preset_{self.video_id}.xlsx"
         self.console.print(f"[cyan]💾 Menyimpan data Excel ke [bold bright_yellow]{filename}[/bold bright_yellow]...[/cyan]")
         
         flat_list = []
         for comment in comments_list:
-            flat_list.append({"Tipe": "Komentar Utama", "ID_Komentar_Induk": "", "ID_Komentar": comment.get('cid'), "Username": comment.get('username'), "Nickname": comment.get('nickname'), "Komentar": comment.get('comment'), "Waktu": comment.get('create_time'), "Jumlah_Like": comment.get('digg_count'), "Total_Balasan": comment.get('total_reply')})
+            links = [p['url'] for p in self.extract_preset_links(comment.get('comment'))]
+            kinds = sorted({p['kind'] for p in self.extract_preset_links(comment.get('comment'))})
+            flat_list.append({"Tipe": "Komentar Utama", "ID_Komentar_Induk": "", "ID_Komentar": comment.get('cid'), "Username": comment.get('username'), "Nickname": comment.get('nickname'), "Komentar": comment.get('comment'), "Link_Preset": "; ".join(links), "Jenis_Preset": ", ".join(kinds), "Waktu": comment.get('create_time'), "Jumlah_Like": comment.get('digg_count'), "Total_Balasan": comment.get('total_reply')})
             for reply in comment.get('replies', []):
-                flat_list.append({"Tipe": "Balasan", "ID_Komentar_Induk": comment.get('cid'), "ID_Komentar": reply.get('cid'), "Username": reply.get('username'), "Nickname": reply.get('nickname'), "Komentar": reply.get('comment'), "Waktu": reply.get('create_time'), "Jumlah_Like": reply.get('digg_count'), "Total_Balasan": 0})
+                rlinks = [p['url'] for p in self.extract_preset_links(reply.get('comment'))]
+                rkinds = sorted({p['kind'] for p in self.extract_preset_links(reply.get('comment'))})
+                flat_list.append({"Tipe": "Balasan", "ID_Komentar_Induk": comment.get('cid'), "ID_Komentar": reply.get('cid'), "Username": reply.get('username'), "Nickname": reply.get('nickname'), "Komentar": reply.get('comment'), "Link_Preset": "; ".join(rlinks), "Jenis_Preset": ", ".join(rkinds), "Waktu": reply.get('create_time'), "Jumlah_Like": reply.get('digg_count'), "Total_Balasan": 0})
                     
         if not flat_list:
             self.console.print("[bright_yellow]⚠ Tidak ada data untuk disimpan ke Excel.[/bright_yellow]")
@@ -473,17 +584,23 @@ class TikTokScraper:
         video_panel = Panel(video_info, title="[bold bright_blue]Informasi Video[/bold bright_blue]", border_style="bright_blue", width=80)
         self.console.print(Align.center(video_panel))
         
-        self.console.print(f"\n[bold bright_white]Tinjauan {min(20, len(comments_list))} Komentar Utama Teratas:[/bold bright_white]")
+        self.console.print(f"\n[bold bright_white]Tinjauan {min(20, len(comments_list))} Preset Teratas:[/bold bright_white]")
         
-        table = Table(title="Tinjauan Komentar", show_header=True, header_style="bold bright_blue", border_style="bright_cyan")
+        table = Table(title="Tinjauan Preset AM", show_header=True, header_style="bold bright_blue", border_style="bright_cyan")
         table.add_column("Username", style="bright_white", width=15)
         table.add_column("Nickname", style="bright_cyan", width=20)
-        table.add_column("Komentar", style="bright_white", min_width=30, max_width=50)
+        table.add_column("Preset Link", style="bright_green", min_width=30, max_width=50)
         table.add_column("Likes", style="bright_yellow", justify="right")
         table.add_column("Balasan", style="bright_blue", justify="right")
 
         for c in comments_list[:20]:
-            table.add_row(c['username'], c['nickname'], c['comment'].replace('\n', ' ') if c['comment'] else "", str(c['digg_count']), str(c['total_reply']))
+            links = [p['url'] for p in self.extract_preset_links(c.get('comment'))]
+            for r in c.get('replies', [])[:3]:
+                links += [p['url'] for p in self.extract_preset_links(r.get('comment'))]
+            link_cell = (links[0][:47] + "..." if len(links[0]) > 50 else links[0]) if links else (c['comment'].replace('\n', ' ')[:50] if c['comment'] else "")
+            if len(links) > 1:
+                link_cell += f" (+{len(links)-1})"
+            table.add_row(c['username'], c['nickname'], link_cell, str(c['digg_count']), str(len(c.get('replies', []))))
         
         self.console.print(table)
 
@@ -501,10 +618,10 @@ class TikTokScraper:
         
         confirmation_panel = Panel(
             f"[bold bright_green]✅ PROSES SELESAI![/bold bright_green]\n\n"
-            f"Data lengkap ([bright_yellow]{comments_count}[/bright_yellow] komentar utama dan [bright_yellow]{replies_count}[/bright_yellow] balasan) telah disimpan.\n"
-            f"1. [bold bright_cyan]tiktok_comments_{self.video_id}.json[/bold bright_cyan]\n"
-            f"2. [bold bright_cyan]tiktok_comments_{self.video_id}.xlsx[/bold bright_cyan]\n\n"
-            f"[bright_yellow]Buka file untuk melihat seluruh data.[/bright_yellow]",
+            f"Data preset ([bright_yellow]{comments_count}[/bright_yellow] thread dan [bright_yellow]{replies_count}[/bright_yellow] balasan ber-link preset) telah disimpan.\n"
+            f"1. [bold bright_cyan]am_preset_{self.video_id}.json[/bold bright_cyan]\n"
+            f"2. [bold bright_cyan]am_preset_{self.video_id}.xlsx[/bold bright_cyan]\n\n"
+            f"[bright_yellow]Buka file untuk melihat seluruh link preset.[/bright_yellow]",
             title="[bold bright_green]Konfirmasi Ekspor[/bold bright_green]",
             border_style="bright_green",
             width=80
@@ -531,15 +648,15 @@ class TikTokScraper:
             self.video_url = url
 
             details = self._get_video_details()
-            only_link = Prompt.ask("[bold bright_magenta]» Hanya ambil komentar berisi link (https)? Filter langsung saat fetch[/bold bright_magenta]", choices=["y", "n"], default="y")
-            keyword = "https" if only_link.lower() == "y" else None
+            only_preset = Prompt.ask("[bold bright_magenta]» Hanya ambil komentar ber-link preset AM (alightcreative.com / alight.link / drive.google.com)? Filter domain cerdas saat fetch[/bold bright_magenta]", choices=["y", "n"], default="y")
+            doms = list(self.PRESET_DOMAINS) if only_preset.lower() == "y" else None
             skip_mode = False
-            if keyword:
-                skip_mode = Prompt.ask("[bold bright_magenta]» Mode hemat (skip fetch balasan jika induk tidak match)? y=cepat tapi balasan-link bisa hilang, n=lengkap[/bold bright_magenta]", choices=["y", "n"], default="n") == "y"
-            all_comments = self._get_all_comments_and_replies(keyword=keyword, skip_replies_if_parent_miss=skip_mode)
+            if doms:
+                skip_mode = Prompt.ask("[bold bright_magenta]» Mode hemat (skip fetch balasan jika induk tidak ber-preset)? y=cepat tapi balasan-preset bisa hilang, n=lengkap[/bold bright_magenta]", choices=["y", "n"], default="n") == "y"
+            all_comments = self._get_all_comments_and_replies(preset_domains=doms, skip_replies_if_parent_miss=skip_mode)
 
             if not all_comments:
-                msg = "[bright_yellow]⚠ Tidak ada komentar yang mengandung 'https'.[/bright_yellow]" if keyword else "[bright_yellow]⚠ Tidak ada komentar yang ditemukan untuk video ini.[/bright_yellow]"
+                msg = f"[bright_yellow]⚠ Tidak ada komentar ber-link preset {doms}.[/bright_yellow]" if doms else "[bright_yellow]⚠ Tidak ada komentar yang ditemukan untuk video ini.[/bright_yellow]"
                 self.console.print(msg)
                 return
 
@@ -572,6 +689,7 @@ class TikTokScraper:
 # Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 # --- Titik Masuk Eksekusi Wak---
+TikTokScraper = AMPresetFinder  # alias kompatibilitas nama lama
 if __name__ == "__main__":
-    scraper = TikTokScraper()
+    scraper = AMPresetFinder()
     scraper.run()

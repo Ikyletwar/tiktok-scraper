@@ -4,3 +4,5 @@ __pycache__/
 venv/
 tiktok_comments_*.json
 tiktok_comments_*.xlsx
+am_preset_*.json
+am_preset_*.xlsx
