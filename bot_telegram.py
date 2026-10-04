@@ -145,6 +145,7 @@ def run_polling():
     me = tg_api("getMe")
     print(f"Bot aktif sebagai @{me['result'].get('username')} — menunggu chat…")
     offset = 0
+    seen_updates = set()  # cegah update yang sama diproses 2x (redelivery Telegram)
     while True:
         try:
             data = tg_api("getUpdates", {"offset": offset, "timeout": POLL_TIMEOUT}, timeout=POLL_TIMEOUT + 10)
@@ -154,6 +155,11 @@ def run_polling():
             continue
         for upd in data.get("result", []):
             offset = upd["update_id"] + 1
+            if upd["update_id"] in seen_updates:
+                continue
+            seen_updates.add(upd["update_id"])
+            if len(seen_updates) > 1000:
+                seen_updates.clear()
             msg = upd.get("message") or upd.get("edited_message") or {}
             chat = msg.get("chat", {})
             text = msg.get("text", "")

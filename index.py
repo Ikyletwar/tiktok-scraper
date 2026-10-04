@@ -369,6 +369,7 @@ class AMPresetFinder:
         cursor = 0
         kw = (keyword or "").lower() if keyword else ""
         doms = [d.lower() for d in preset_domains] if preset_domains else None
+        empty_retries = 0
         task_replies = progress.add_task(f"[dim] -> Mengambil {total_replies} balasan...", total=total_replies, visible=True)
 
         while True:
@@ -381,7 +382,13 @@ class AMPresetFinder:
                 response.raise_for_status()
                 data = response.json()
                 replies = data.get("comments", [])
-                if not replies: break
+                if not replies:
+                    if cursor == 0 and empty_retries < 2:
+                        empty_retries += 1
+                        time.sleep(2)
+                        continue
+                    break
+                empty_retries = 0
 
                 for reply in replies:
                     parsed = self._parse_comment(reply)
@@ -423,6 +430,7 @@ class AMPresetFinder:
         total_scanned = 0
         total_replies_scanned = 0
         total_matched_replies = 0
+        empty_retries = 0  # API TikTok kadang mengembalikan page kosong padahal komentar ada
         
         with Progress(
             SpinnerColumn(style="bright_magenta"),
@@ -443,8 +451,14 @@ class AMPresetFinder:
                     data = response.json()
                     comments = data.get("comments", [])
                     if not comments:
+                        if cursor == 0 and empty_retries < 3:
+                            empty_retries += 1
+                            progress.update(task_comments, description=f"[bright_yellow]⏳ Page kosong, retry {empty_retries}/3...[/bright_yellow]")
+                            time.sleep(2)
+                            continue
                         progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=len(all_comments))
                         break
+                    empty_retries = 0
 
                     for comment_json in comments:
                         comment_data = self._parse_comment(comment_json)
