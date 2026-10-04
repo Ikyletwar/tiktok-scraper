@@ -573,6 +573,57 @@ class AMPresetFinder:
         except Exception as e:
             self.console.print(f"[bold bright_red]❌ Error:[/] Gagal menyimpan file Excel: {e}")
 
+    def _collect_preset_links(self, comments_list: List[Dict[str, Any]], domains: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Kumpulkan semua link preset (induk + balasan) menjadi list datar siap print."""
+        doms = [d.lower() for d in (domains if domains is not None else self.PRESET_DOMAINS)]
+        flat: List[Dict[str, Any]] = []
+        for c in comments_list:
+            for p in self.extract_preset_links(c.get('comment'), doms):
+                flat.append({"url": p["url"], "domain": p["domain"], "kind": p["kind"], "username": c.get("username", "N/A"), "nickname": c.get("nickname", ""), "cid": c.get("cid", ""), "sumber": "induk", "likes": c.get("digg_count", 0)})
+            for r in c.get("replies", []):
+                for p in self.extract_preset_links(r.get("comment"), doms):
+                    flat.append({"url": p["url"], "domain": p["domain"], "kind": p["kind"], "username": r.get("username", "N/A"), "nickname": r.get("nickname", ""), "cid": r.get("cid", ""), "sumber": "balasan", "likes": r.get("digg_count", 0)})
+        return flat
+
+    def _display_preset_links(self, comments_list: List[Dict[str, Any]], domains: Optional[List[str]] = None):
+        """Print langsung semua link preset yang didapat ke console (full URL, siap copy)."""
+        links = self._collect_preset_links(comments_list, domains)
+        if not links:
+            self.console.print("\n[bright_yellow]⚠ Tidak ada link preset pada hasil ini.[/bright_yellow]")
+            return links
+        # Dedup untuk ringkasan bernomor
+        seen = {}
+        counts = {}
+        for e in links:
+            seen.setdefault(e["url"], e)
+            counts[e["url"]] = counts.get(e["url"], 0) + 1
+        uniq = list(seen.values())
+        kind_label = {"alight_link": "Alight Link", "drive_xml": "Drive XML", "preset_link": "Preset", "other_link": "Lain"}
+        panel_lines = []
+        for i, u in enumerate(uniq, 1):
+            n = counts[u["url"]]
+            extra = f" | dibagikan {n}x" if n > 1 else ""
+            panel_lines.append(f"[bold bright_green]{i}.[/] {u['url']} [dim]({kind_label.get(u['kind'], u['kind'])} | @{u['username']}{extra})[/dim]")
+        panel_text = "\n".join(panel_lines)
+        self.console.print(Panel(panel_text, title=f"[bold bright_green]🎨 {len(uniq)} Link Preset Ditemukan (langsung copy)[/bold bright_green]", border_style="bright_green", width=100))
+        # Tabel detail per sumber
+        tbl = Table(title="Detail Sumber Preset", show_header=True, header_style="bold bright_blue", border_style="bright_cyan", show_lines=False)
+        tbl.add_column("No", style="bright_white", width=4, justify="right")
+        tbl.add_column("Link Preset", style="bright_green", overflow="fold", min_width=40)
+        tbl.add_column("Jenis", style="bright_magenta", width=11)
+        tbl.add_column("User", style="bright_cyan", width=15)
+        tbl.add_column("Src", style="bright_blue", width=7)
+        for i, u in enumerate(uniq, 1):
+            n = counts[u["url"]]
+            user_cell = f"@{u['username']}" + (f" x{n}" if n > 1 else "")
+            tbl.add_row(str(i), u["url"], kind_label.get(u["kind"], u["kind"]), user_cell, u["sumber"])
+        self.console.print(tbl)
+        # Plain list mentah untuk copy-paste / pipe tanpa wrap
+        self.console.print("[dim]--- copy mentah (satu URL per baris) ---[/dim]")
+        for u in uniq:
+            self.console.print(u["url"], highlight=False, soft_wrap=True, crop=False)
+        return links
+
     def _display_summary_table(self, comments_list: List[Dict[str, Any]], video_details: Dict[str, Any]):
         """Menampilkan tabel ringkasan di konsol."""
         video_info = (
@@ -676,6 +727,7 @@ class AMPresetFinder:
             self._save_to_json(final_output)
             self._save_to_excel(comments_out)
             self._display_summary_table(comments_out, details)
+            self._display_preset_links(comments_out, doms)
             self._display_completion_screen(len(comments_out), sum(len(c.get('replies', [])) for c in comments_out))
 
         except KeyboardInterrupt:
