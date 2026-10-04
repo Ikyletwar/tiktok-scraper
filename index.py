@@ -420,6 +420,24 @@ class AMPresetFinder:
 # Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 
+    def _prime_session(self):
+        """Kunjungi halaman video sekali agar session punya cookie browser (ttwid/msToken).
+
+        Tanpa cookie, API comment TikTok sering mengembalikan page kosong
+        (status 0 tapi comments=[]) secara acak. Priming menstabilkannya.
+        Non-fatal: gagal prime -> lanjut seperti biasa.
+        """
+        try:
+            if self.session.cookies.get("ttwid") and self.session.cookies.get("msToken"):
+                return
+            self.session.get(
+                f"https://www.tiktok.com/@i/video/{self.video_id}",
+                timeout=15,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+            )
+        except Exception:
+            pass
+
     def _get_all_comments_and_replies(self, keyword: Optional[str] = None, skip_replies_if_parent_miss: bool = False, preset_domains: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Mengambil komentar utama dan balasannya. Jika preset_domains diisi, filter domain cerdas langsung saat streaming. Fallback keyword substring jika domains None."""
         all_comments = []
@@ -431,6 +449,8 @@ class AMPresetFinder:
         total_replies_scanned = 0
         total_matched_replies = 0
         empty_retries = 0  # API TikTok kadang mengembalikan page kosong padahal komentar ada
+        empty_waits = [2, 3, 5, 8]
+        self._prime_session()
         
         with Progress(
             SpinnerColumn(style="bright_magenta"),
@@ -451,10 +471,12 @@ class AMPresetFinder:
                     data = response.json()
                     comments = data.get("comments", [])
                     if not comments:
-                        if cursor == 0 and empty_retries < 3:
+                        if cursor == 0 and empty_retries < len(empty_waits):
+                            wait = empty_waits[empty_retries]
                             empty_retries += 1
-                            progress.update(task_comments, description=f"[bright_yellow]⏳ Page kosong, retry {empty_retries}/3...[/bright_yellow]")
-                            time.sleep(2)
+                            progress.update(task_comments, description=f"[bright_yellow]⏳ Page kosong, retry {empty_retries}/{len(empty_waits)} ({wait}s)...[/bright_yellow]")
+                            time.sleep(wait)
+                            self._prime_session()  # refresh cookie bila sudah basi
                             continue
                         progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=len(all_comments))
                         break
