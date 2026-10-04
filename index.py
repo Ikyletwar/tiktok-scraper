@@ -35,6 +35,12 @@ from rich.text import Text
 from rich.align import Align
 from rich.rule import Rule
 
+# === KONFIG EKSPOR FILE ===
+# CLI-only secara default (tidak tulis file sama sekali).
+# Kalau mau pakai lagi, tinggal ubah ke True:
+ENABLE_SAVE_JSON = False    # simpan am_preset_<ID>.json
+ENABLE_SAVE_EXCEL = False   # simpan am_preset_<ID>.xlsx (butuh pandas) / .csv fallback
+
 class AMPresetFinder:
     """
     AM Preset Finder berbasis Class untuk mengambil komentar TikTok yang
@@ -685,12 +691,23 @@ class AMPresetFinder:
         complete_text = pyfiglet.figlet_format("COMPLETE!", font="standard")
         self.console.print(Align.center(f"[bold bright_green]{complete_text}[/bold bright_green]"))
         
+        if ENABLE_SAVE_JSON or ENABLE_SAVE_EXCEL:
+            body = (
+                f"[bold bright_green]✅ PROSES SELESAI![/bold bright_green]\n\n"
+                f"Data preset ([bright_yellow]{comments_count}[/bright_yellow] thread dan [bright_yellow]{replies_count}[/bright_yellow] balasan ber-link preset) telah disimpan.\n"
+                f"1. [bold bright_cyan]am_preset_{self.video_id}.json[/bold bright_cyan]\n"
+                f"2. [bold bright_cyan]am_preset_{self.video_id}.xlsx[/bold bright_cyan]\n\n"
+                f"[bright_yellow]Buka file untuk melihat seluruh link preset.[/bright_yellow]"
+            )
+        else:
+            body = (
+                f"[bold bright_green]✅ PROSES SELESAI! (CLI-only, tanpa file)[/bold bright_green]\n\n"
+                f"Ditemukan ([bright_yellow]{comments_count}[/bright_yellow] thread dan [bright_yellow]{replies_count}[/bright_yellow] balasan ber-link preset).\n"
+                f"Semua link sudah di-print di atas, tinggal copy.\n\n"
+                f"[dim]Mau simpan ke file? Set ENABLE_SAVE_JSON / ENABLE_SAVE_EXCEL = True di index.py[/dim]"
+            )
         confirmation_panel = Panel(
-            f"[bold bright_green]✅ PROSES SELESAI![/bold bright_green]\n\n"
-            f"Data preset ([bright_yellow]{comments_count}[/bright_yellow] thread dan [bright_yellow]{replies_count}[/bright_yellow] balasan ber-link preset) telah disimpan.\n"
-            f"1. [bold bright_cyan]am_preset_{self.video_id}.json[/bold bright_cyan]\n"
-            f"2. [bold bright_cyan]am_preset_{self.video_id}.xlsx[/bold bright_cyan]\n\n"
-            f"[bright_yellow]Buka file untuk melihat seluruh link preset.[/bright_yellow]",
+            body,
             title="[bold bright_green]Konfirmasi Ekspor[/bold bright_green]",
             border_style="bright_green",
             width=80
@@ -731,19 +748,24 @@ class AMPresetFinder:
 
             comments_out = all_comments
 
-            final_output = {
-                "caption": f"@{details['author']}: {details['caption']}",
-                "date_now": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S'),
-                "video_url": self.video_url,
-                "video_stats": {
-                    "view_count": details.get('view_count', 0), "like_count": details.get('like_count', 0),
-                    "comment_count": details.get('comment_count', 0), "share_count": details.get('share_count', 0)
-                },
-                "comments": comments_out
-            }
-            
-            self._save_to_json(final_output)
-            self._save_to_excel(comments_out)
+            if ENABLE_SAVE_JSON:
+                final_output = {
+                    "caption": f"@{details['author']}: {details['caption']}",
+                    "date_now": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S'),
+                    "video_url": self.video_url,
+                    "video_stats": {
+                        "view_count": details.get('view_count', 0), "like_count": details.get('like_count', 0),
+                        "comment_count": details.get('comment_count', 0), "share_count": details.get('share_count', 0)
+                    },
+                    "comments": comments_out
+                }
+                self._save_to_json(final_output)
+            else:
+                self.console.print("[dim]⏭ Ekspor JSON dimatikan (CLI-only). Set ENABLE_SAVE_JSON=True untuk mengaktifkan.[/dim]")
+            if ENABLE_SAVE_EXCEL:
+                self._save_to_excel(comments_out)
+            else:
+                self.console.print("[dim]⏭ Ekspor Excel/CSV dimatikan (CLI-only). Set ENABLE_SAVE_EXCEL=True untuk mengaktifkan.[/dim]")
             self._display_summary_table(comments_out, details)
             self._display_preset_links(comments_out, doms)
             self._display_completion_screen(len(comments_out), sum(len(c.get('replies', [])) for c in comments_out))
