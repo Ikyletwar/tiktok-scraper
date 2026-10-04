@@ -5,7 +5,12 @@
 # Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 import requests
-import pandas as pd
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    pd = None
+    HAS_PANDAS = False  # mode Termux ringan: Excel dimatikan, JSON + print console tetap jalan
 import time
 import os
 import json
@@ -565,6 +570,19 @@ class AMPresetFinder:
                     
         if not flat_list:
             self.console.print("[bright_yellow]⚠ Tidak ada data untuk disimpan ke Excel.[/bright_yellow]")
+            return
+        if not HAS_PANDAS:
+            # Fallback Termux tanpa pandas: tulis CSV manual agar tidak crash
+            import csv
+            csv_name = filename.replace(".xlsx", ".csv")
+            try:
+                with open(csv_name, "w", newline="", encoding="utf-8") as f:
+                    w = csv.DictWriter(f, fieldnames=list(flat_list[0].keys()))
+                    w.writeheader()
+                    w.writerows(flat_list)
+                self.console.print(f"[bold bright_green]✅ Berhasil![/] pandas tidak ada, disimpan sebagai CSV: {csv_name}")
+            except Exception as e:
+                self.console.print(f"[bold bright_red]❌ Error:[/] Gagal menyimpan CSV: {e}")
             return
         try:
             df = pd.DataFrame(flat_list)
