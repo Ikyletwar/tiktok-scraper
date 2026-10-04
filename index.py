@@ -1,8 +1,8 @@
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 import requests
 import pandas as pd
@@ -69,7 +69,7 @@ class TikTokScraper:
         self.console.print(Align.center(f"[bold bright_cyan]{banner_text}[/bold bright_cyan]"))
         
         info_panel = Panel(
-            "[bold bright_yellow]Created By : Raihan_official0307 X Visualcodepo[/bold bright_yellow]",
+            "[bold bright_yellow]Created By : Nihongo[/bold bright_yellow]",
             title="[bold bright_magenta]TikTok Comment Scraper v4.1[/bold bright_magenta]",
             subtitle="[dim bright_white]Modern Class-Based Scraper with Enhanced UI[/dim bright_white]",
             border_style="bright_blue",
@@ -77,7 +77,7 @@ class TikTokScraper:
         )
         self.console.print(Align.center(info_panel))
 
-        encoded_message = b'RGlsYXJhbmcga2VyYXMgdW50dWsgbWVyZWNvZGUgYXRhdSBtZW5ndWJhaCBuYW1hIGF1dGhvciAoUmFpaGFuX29mZmljaWFsMDMwNyBYIFZpc3VhbGNvZGVwbykgcGFkYSBzY3JpcHQgaW5pLiBLYXJ5YSBpbmkgZGlidWF0IHNlcGVudWhueWEgb2xlaCBrYW1pLiBNb2hvbiBoYXJnYWkga2FyeWEgY3JlYXRvciBkZW5nYW4gdGlkYWsgbWVuZ2tsYWltIHNlYmFnYWkgbWlsaWsgQW5kYS4gUGVsYW5nZ2FyYW4gYWthbiBkaXRhbmRhaS4='
+        encoded_message = b'RGlsYXJhbmcga2VyYXMgdW50dWsgbWVyZWNvZGUgYXRhdSBtZW5ndWJhaCBuYW1hIGF1dGhvciAoTmlob25nbykgcGFkYSBzY3JpcHQgaW5pLiBLYXJ5YSBpbmkgZGlidWF0IHNlcGVudWhueWEgb2xlaCBrYW1pLiBNb2hvbiBoYXJnYWkga2FyeWEgY3JlYXRvciBkZW5nYW4gdGlkYWsgbWVuZ2tsYWltIHNlYmFnYWkgbWlsaWsgQW5kYS4gUGVsYW5nZ2FyYW4gYWthbiBkaXRhbmRhaS4='
 
         decoded_message = base64.b64decode(encoded_message).decode('utf-8')
 
@@ -148,11 +148,11 @@ class TikTokScraper:
     def _format_number(self, num: int) -> str:
         """Format angka dengan pemisah ribuan."""
         return f"{num:,}"
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
     def _get_video_details(self) -> Dict[str, Any]:
         """Mengambil detail video (caption, author, view count) dari API dengan perbaikan."""
@@ -251,11 +251,11 @@ class TikTokScraper:
         self.console.print(Rule(style="bright_cyan"))
 
 
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 
     def _parse_comment(self, comment_json: Dict[str, Any]) -> Dict[str, Any]:
@@ -285,10 +285,11 @@ class TikTokScraper:
         
         return parsed_data
 
-    def _get_replies(self, comment_id: str, total_replies: int, progress: Progress) -> List[Dict[str, Any]]:
-        """Mengambil SEMUA balasan untuk satu komentar."""
+    def _get_replies(self, comment_id: str, total_replies: int, progress: Progress, keyword: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Mengambil balasan untuk satu komentar. Jika keyword diisi, hanya balasan mengandung keyword yang disimpan (filter saat streaming)."""
         replies_list = []
         cursor = 0
+        kw = (keyword or "").lower() if keyword else ""
         task_replies = progress.add_task(f"[dim] -> Mengambil {total_replies} balasan...", total=total_replies, visible=True)
 
         while True:
@@ -304,7 +305,11 @@ class TikTokScraper:
                 if not replies: break
 
                 for reply in replies:
-                    replies_list.append(self._parse_comment(reply))
+                    parsed = self._parse_comment(reply)
+                    if kw and kw not in (parsed.get('comment') or "").lower():
+                        progress.update(task_replies, advance=1)
+                        continue
+                    replies_list.append(parsed)
                     progress.update(task_replies, advance=1)
                 
                 if not data.get("has_more", False): break
@@ -318,19 +323,21 @@ class TikTokScraper:
         progress.remove_task(task_replies)
         return replies_list
 
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 
-    def _get_all_comments_and_replies(self) -> List[Dict[str, Any]]:
-        """Mengambil SEMUA komentar utama dan balasannya."""
+    def _get_all_comments_and_replies(self, keyword: Optional[str] = None, skip_replies_if_parent_miss: bool = False) -> List[Dict[str, Any]]:
+        """Mengambil komentar utama dan balasannya. Jika keyword diisi, filter langsung saat streaming (tidak tampung semua dulu)."""
         all_comments = []
         cursor = 0
-        total_comments_fetched = 0
-        total_replies_fetched = 0
+        kw = (keyword or "").lower() if keyword else ""
+        total_scanned = 0
+        total_replies_scanned = 0
+        total_matched_replies = 0
         
         with Progress(
             SpinnerColumn(style="bright_magenta"),
@@ -351,21 +358,35 @@ class TikTokScraper:
                     data = response.json()
                     comments = data.get("comments", [])
                     if not comments:
-                        progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=total_comments_fetched)
+                        progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=len(all_comments))
                         break
 
                     for comment_json in comments:
                         comment_data = self._parse_comment(comment_json)
+                        total_scanned += 1
+                        parent_match = (not kw) or (kw in (comment_data.get('comment') or "").lower())
+
+                        if kw and not parent_match and skip_replies_if_parent_miss:
+                            # Mode hemat: induk tidak match -> buang, jangan fetch balasan sama sekali.
+                            progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🔗 Match:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan match:[/] [bright_white]{total_matched_replies}[/]")
+                            continue
+
                         if comment_data["total_reply"] > 0:
-                            replies = self._get_replies(comment_data['cid'], comment_data['total_reply'], progress)
+                            replies = self._get_replies(comment_data['cid'], comment_data['total_reply'], progress, keyword=keyword if kw else None)
+                            total_replies_scanned += comment_data["total_reply"]
+                            total_matched_replies += len(replies)
                             comment_data["replies"] = replies
-                            total_replies_fetched += len(replies)
+                        # Filter streaming: hanya simpan thread yang induk match atau ada balasan match
+                        if kw and not parent_match and not comment_data.get("replies"):
+                            progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🔗 Match:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan match:[/] [bright_white]{total_matched_replies}[/]")
+                            continue
+                        if kw and parent_match and not comment_data.get("replies"):
+                            comment_data["replies"] = []
                         all_comments.append(comment_data)
-                        total_comments_fetched += 1
-                        progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Komentar:[/] [bright_white]{total_comments_fetched}[/] [bright_cyan]💬 Balasan:[/] [bright_white]{total_replies_fetched}[/]")
+                        progress.update(task_comments, advance=1, description=f"[bright_cyan]📥 Scan:[/] [bright_white]{total_scanned}[/] [bright_cyan]🔗 Match:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan match:[/] [bright_white]{total_matched_replies}[/]" if kw else f"[bright_cyan]📥 Komentar:[/] [bright_white]{len(all_comments)}[/] [bright_cyan]💬 Balasan:[/] [bright_white]{total_matched_replies if kw else total_replies_scanned}[/]")
                     
                     if not data.get("has_more", False):
-                        progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=total_comments_fetched)
+                        progress.update(task_comments, description="[bold bright_green]✅ Selesai Komentar Utama[/bold bright_green]", total=len(all_comments))
                         break
                     cursor = data.get("cursor")
                     time.sleep(1)
@@ -376,8 +397,33 @@ class TikTokScraper:
                     self.console.print(f"[bold bright_red]❌ Error:[/] {e}")
                     break
 
-        self.console.print(f"\n[bold bright_green]✅ Total {total_comments_fetched} komentar utama dan {total_replies_fetched} balasan berhasil diambil.[/bold bright_green]")
+        if kw:
+            self.console.print(f"\n[bold bright_green]✅ Scan {total_scanned} komentar, dapat {len(all_comments)} thread + {total_matched_replies} balasan mengandung '{keyword}'.[/bold bright_green]")
+        else:
+            self.console.print(f"\n[bold bright_green]✅ Total {len(all_comments)} komentar utama dan {total_replies_scanned} balasan berhasil diambil.[/bold bright_green]")
         return all_comments
+
+    def _filter_by_keyword(self, comments_list: List[Dict[str, Any]], keyword: str = "https") -> List[Dict[str, Any]]:
+        """Filter komentar dan balasan yang teksnya mengandung keyword (case-insensitive)."""
+        kw = (keyword or "").lower()
+        if not kw:
+            return comments_list
+        filtered = []
+        for c in comments_list:
+            parent_text = (c.get('comment') or "").lower()
+            parent_match = kw in parent_text
+            matching_replies = [r for r in c.get('replies', []) if kw in (r.get('comment') or "").lower()]
+            if parent_match or matching_replies:
+                new_c = dict(c)
+                # Jika induk match, pertahankan semua balasan yang match;
+                # jika induk tidak match tapi balasan match, pertahankan induk sebagai konteks.
+                if parent_match and not matching_replies:
+                    # induk match, tidak ada balasan match -> balasan dikosongkan agar output bersih
+                    new_c['replies'] = []
+                else:
+                    new_c['replies'] = matching_replies
+                filtered.append(new_c)
+        return filtered
 
     def _save_to_json(self, data: dict):
         """Menyimpan data akhir ke file JSON."""
@@ -389,11 +435,11 @@ class TikTokScraper:
             self.console.print(f"[bold bright_green]✅ Berhasil![/] Data JSON tersimpan.")
         except Exception as e:
             self.console.print(f"[bold bright_red]❌ Error:[/] Gagal menyimpan file JSON: {e}")
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
     def _save_to_excel(self, comments_list: List[Dict[str, Any]]):
         """Menyimpan data ke file Excel."""
@@ -441,11 +487,11 @@ class TikTokScraper:
         
         self.console.print(table)
 
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 
     def _display_completion_screen(self, comments_count: int, replies_count: int):
@@ -468,11 +514,11 @@ class TikTokScraper:
         footer_text = pyfiglet.figlet_format("Thank You!", font="small")
         self.console.print(Align.center(f"[bold bright_magenta]{footer_text}[/bold bright_magenta]"))
         self.console.print(Rule(style="bright_cyan"))
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
     def run(self):
         """Metode utama untuk menjalankan seluruh proses scraper."""
@@ -485,11 +531,19 @@ class TikTokScraper:
             self.video_url = url
 
             details = self._get_video_details()
-            all_comments = self._get_all_comments_and_replies()
+            only_link = Prompt.ask("[bold bright_magenta]» Hanya ambil komentar berisi link (https)? Filter langsung saat fetch[/bold bright_magenta]", choices=["y", "n"], default="y")
+            keyword = "https" if only_link.lower() == "y" else None
+            skip_mode = False
+            if keyword:
+                skip_mode = Prompt.ask("[bold bright_magenta]» Mode hemat (skip fetch balasan jika induk tidak match)? y=cepat tapi balasan-link bisa hilang, n=lengkap[/bold bright_magenta]", choices=["y", "n"], default="n") == "y"
+            all_comments = self._get_all_comments_and_replies(keyword=keyword, skip_replies_if_parent_miss=skip_mode)
 
             if not all_comments:
-                self.console.print("[bright_yellow]⚠ Tidak ada komentar yang ditemukan untuk video ini.[/bright_yellow]")
+                msg = "[bright_yellow]⚠ Tidak ada komentar yang mengandung 'https'.[/bright_yellow]" if keyword else "[bright_yellow]⚠ Tidak ada komentar yang ditemukan untuk video ini.[/bright_yellow]"
+                self.console.print(msg)
                 return
+
+            comments_out = all_comments
 
             final_output = {
                 "caption": f"@{details['author']}: {details['caption']}",
@@ -499,23 +553,23 @@ class TikTokScraper:
                     "view_count": details.get('view_count', 0), "like_count": details.get('like_count', 0),
                     "comment_count": details.get('comment_count', 0), "share_count": details.get('share_count', 0)
                 },
-                "comments": all_comments
+                "comments": comments_out
             }
             
             self._save_to_json(final_output)
-            self._save_to_excel(all_comments)
-            self._display_summary_table(all_comments, details)
-            self._display_completion_screen(len(all_comments), sum(c.get('total_reply', 0) for c in all_comments))
+            self._save_to_excel(comments_out)
+            self._display_summary_table(comments_out, details)
+            self._display_completion_screen(len(comments_out), sum(len(c.get('replies', [])) for c in comments_out))
 
         except KeyboardInterrupt:
             self.console.print("\n[bold bright_yellow]⚠ Proses dihentikan oleh pengguna.[/bold bright_yellow]")
         except Exception as e:
             self.console.print(f"\n[bold bright_red]❌ Terjadi error tak terduga:[/] {e}")
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 # --- Titik Masuk Eksekusi Wak---
 if __name__ == "__main__":

@@ -2,12 +2,12 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Author](https://img.shields.io/badge/author-Raihan__official0307__X__Visualcodepo-red.svg)](https://github.com/Dikrey)
+[![Author](https://img.shields.io/badge/author-Nihongo-red.svg)](https://github.com/ikyletwar)
 [![Made with ❤️](https://img.shields.io/badge/made%20with-❤️-red.svg)]()
 
 Sebuah command-line tool yang powerful dan bergaya untuk mengambil semua komentar dan balasan dari video TikTok mana pun. Dibangun dengan Python, scraper ini menampilkan antarmuka CLI yang indah dan berwarna-warni (dengan library `rich`), serta mengekspor data ke format **JSON** dan **Excel**.
 
-Created by: [Raihan_official0307](https://github.com/Dikrey) X [Visualcodepo](https://github.com/Dikrey).
+Created by: [Nihongo](https://github.com/ikyletwar).
 
 
 ---
@@ -52,7 +52,7 @@ Ikuti langkah-langkah di bawah ini untuk mengatur lingkungan Anda:
 
 1.  **Clone repositori ini:**
     ```bash
-    git clone https://github.com/Dikrey/tiktok-scraper.git
+    git clone https://github.com/ikyletwar/tiktok-scraper.git
     cd tiktok-scraper
     ```
 
@@ -148,4 +148,4 @@ Proyek ini dilisensikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk detail 
 
 ## 👨‍💻 Author
 
-Dibuat dengan ❤️ oleh [Raihan_official0307](https://github.com/Dikrey) X [Visualcodepo](https://github.com/Dikrey).
+Dibuat dengan ❤️ oleh [Nihongo](https://github.com/ikyletwar).

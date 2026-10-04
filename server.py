@@ -1,17 +1,17 @@
 """
 Script Pengecek dan Penginstal Dependensi
-Dibuat untuk Raihan_official0307 X Visualcodepo
+Dibuat untuk Nihongo
 
 Script ini akan memeriksa apakah pustaka Python yang diperlukan 
 (requests, pandas, pyfiglet, rich, jmespath) 
 telah terinstal. Jika belum, script akan menginstalnya secara otomatis.
 """
 
-# CODE: Raihan_official0307 X Visualcodepo
+# CODE: Nihongo
 # Jangan hapus credit ini ya kak :D
 # Hargai karya creator dengan tidak mengklaim sebagai milik Anda
 # Pelanggaran akan ditandai
-# Jangan merubah nama author (Raihan_official0307 X Visualcodepo) pada script ini
+# Jangan merubah nama author (Nihongo) pada script ini
 # Karya ini dibuat sepenuhnya oleh kami
 
 import subprocess
@@ -36,7 +36,7 @@ def bootstrap_dependencies():
     print("== MEMULAI PENGECEK DEPENDENSI (BOOTSTRAP) ==")
     print("============================================")
     print("Memeriksa pustaka untuk tampilan CLI...")
-    print("Created By: Raihan_official0307 X Visualcodepo")
+    print("Created By: Nihongo")
     print("...")
     print("============================================")
 
@@ -188,7 +188,7 @@ def run_main_checker():
         console.print("[bold red]Beberapa dependensi gagal diinstal. Silakan periksa error di atas.[/bold red]")
 
     console.print("\n\n")
-    credit_text = "Created ... by: Raihan_official0307 X Visualcodepo \nSilahkan lanjut index.py untuk memulai..."
+    credit_text = "Created ... by: Nihongo \nSilahkan lanjut index.py untuk memulai..."
     console.print(Panel(
         credit_text, 
         style="dim white", 
