@@ -2,12 +2,12 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Author](https://img.shields.io/badge/author-Nihongo-red.svg)](https://github.com/ikyletwar)
+[![Author](https://img.shields.io/badge/author-Nihongo-red.svg)](https://github.com/Ikyletwar)
 [![Made with ❤️](https://img.shields.io/badge/made%20with-❤️-red.svg)]()
 
 CLI tool untuk mengambil **semua komentar utama + semua balasan** dari video TikTok apa pun, dengan **filter link (`https`) langsung saat fetch (streaming)**, progress live, dan ekspor ganda **JSON (nested) + Excel (flat)**.
 
-Dibuat oleh: [Nihongo](https://github.com/ikyletwar).
+Dibuat oleh: [Nihongo](https://github.com/Ikyletwar).
 
 ---
 
@@ -122,7 +122,7 @@ Jeda `sleep(1)` antar page komentar, `sleep(0.5)` antar page balasan untuk menah
 ## 📦 Instalasi
 
 ```bash
-git clone https://github.com/ikyletwar/tiktok-scraper.git
+git clone https://github.com/Ikyletwar/tiktok-scraper.git
 cd tiktok-scraper
 ```
 
@@ -322,4 +322,4 @@ MIT. Lihat file `LICENSE` (tambahkan jika belum ada).
 
 ## 👨‍💻 Author
 
-Dibuat dengan ❤️ oleh [Nihongo](https://github.com/ikyletwar).
+Dibuat dengan ❤️ oleh [Nihongo](https://github.com/Ikyletwar).
