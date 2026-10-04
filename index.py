@@ -54,6 +54,21 @@ class AMPresetFinder:
     API_REPLY_LIST_URL = "https://www.tiktok.com/api/comment/list/reply/"
     API_AID = "1988"
 
+    # Param browser-like statis: client web asli selalu mengirim ini.
+    # Tidak wajib, tapi membuat request tak terlihat seperti bot telanjang.
+    API_EXTRA_PARAMS = {
+        "app_name": "tiktok_web",
+        "device_platform": "webapp",
+        "os": "windows",
+        "browser_name": "Mozilla",
+        "browser_platform": "Win32",
+        "cookie_enabled": "true",
+        "screen_width": "1920",
+        "screen_height": "1080",
+        "app_language": "en",
+        "language": "en",
+    }
+
     # Daftar domain preset yang telah dikonfirmasi.
     PRESET_DOMAINS = [
         "alightcreative.com",
@@ -242,7 +257,7 @@ class AMPresetFinder:
         ) as progress:
             task = progress.add_task("Menghubungi API TikTok...", total=None)
             
-            params = {'aid': self.API_AID, 'aweme_id': self.video_id}
+            params = {'aid': self.API_AID, 'aweme_id': self.video_id, **self.API_EXTRA_PARAMS}
             try:
                 progress.update(task, description="Mengambil data video...")
                 response = self.session.get(self.API_VIDEO_DETAIL_URL, params=params, timeout=10)
@@ -375,7 +390,7 @@ class AMPresetFinder:
         while True:
             params = {
                 'aid': self.API_AID, 'aweme_id': self.video_id, 'comment_id': comment_id,
-                'count': 50, 'cursor': cursor
+                'count': 50, 'cursor': cursor, **self.API_EXTRA_PARAMS
             }
             try:
                 response = self.session.get(self.API_REPLY_LIST_URL, params=params, timeout=10)
@@ -464,7 +479,7 @@ class AMPresetFinder:
             task_comments = progress.add_task("[bold bright_cyan]📥 Mengambil Komentar Utama...[/bold bright_cyan]", total=None)
 
             while True:
-                params = {'aid': self.API_AID, 'aweme_id': self.video_id, 'count': 50, 'cursor': cursor}
+                params = {'aid': self.API_AID, 'aweme_id': self.video_id, 'count': 50, 'cursor': cursor, **self.API_EXTRA_PARAMS}
                 try:
                     response = self.session.get(self.API_COMMENT_LIST_URL, params=params, timeout=10)
                     response.raise_for_status()
@@ -474,7 +489,8 @@ class AMPresetFinder:
                         if cursor == 0 and empty_retries < len(empty_waits):
                             wait = empty_waits[empty_retries]
                             empty_retries += 1
-                            progress.update(task_comments, description=f"[bright_yellow]⏳ Page kosong, retry {empty_retries}/{len(empty_waits)} ({wait}s)...[/bright_yellow]")
+                            dbg = f"st={data.get('status_code')} msg={data.get('status_msg')!r} total={data.get('total')} filtered={data.get('has_filtered_comments')}"
+                            progress.update(task_comments, description=f"[bright_yellow]⏳ Page kosong ({dbg}), retry {empty_retries}/{len(empty_waits)} ({wait}s)...[/bright_yellow]")
                             time.sleep(wait)
                             self._prime_session()  # refresh cookie bila sudah basi
                             continue
