@@ -1,121 +1,88 @@
+<div align="center">
+
 # 🎨 AM Preset Finder
 
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Author](https://img.shields.io/badge/author-Nihongo-red.svg)](https://github.com/Ikyletwar)
-[![Made with ❤️](https://img.shields.io/badge/made%20with-❤️-red.svg)]()
+### Temukan link preset Alight Motion yang tersebar di komentar TikTok — dalam hitungan detik.
 
-CLI tool untuk menemukan **link preset Alight Motion** di komentar TikTok — filter domain cerdas (`alightcreative.com` / `alight.link` / `drive.google.com`) langsung saat fetch (streaming), progress live, dan ekspor ganda **JSON (nested) + Excel (flat)**.
+[![Python](https://img.shields.io/badge/python-3.8+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-22c55e.svg?style=for-the-badge)](LICENSE)
+[![Author](https://img.shields.io/badge/author-Nihongo-ef4444.svg?style=for-the-badge)](https://github.com/Ikyletwar)
+[![Platform](https://img.shields.io/badge/runs_on-PC_%7C_Termux-8b5cf6.svg?style=for-the-badge)](#-instalasi)
 
-Dibuat oleh: [Nihongo](https://github.com/Ikyletwar).
+*Filter domain cerdas · Streaming saat fetch · CLI-only ringan · Print link siap copy*
+
+Dibuat dengan ❤️ oleh **[Nihongo](https://github.com/Ikyletwar)**
+
+</div>
 
 ---
 
 ## 📑 Daftar Isi
 
-- [Fitur](#-fitur)
-- [Demo](#️-demo--screenshot)
-- [Arsitektur](#️-arsitektur)
-- [Endpoint API](#-endpoint-api)
-- [Prerequisites](#️-prerequisites)
+- [Kenapa AM Preset Finder?](#-kenapa-am-preset-finder)
+- [Fitur Unggulan](#-fitur-unggulan)
+- [Demo](#️-demo)
+- [Cara Kerja Singkat](#-cara-kerja-singkat)
 - [Instalasi](#-instalasi)
 - [Penggunaan](#-penggunaan)
-- [Mode Filter Link](#-mode-filter-link-streaming)
-- [Skema Output](#-skema-output)
+- [Mode Filter](#-mode-filter)
+- [Domain Preset Terkonfirmasi](#-domain-preset-terkonfirmasi)
+- [Tampilan Console](#-tampilan-console)
+- [Ekspor File (Opsional)](#-ekspor-file-opsional)
+- [Skema Data](#-skema-data)
 - [Contoh Sesi Nyata](#-contoh-sesi-nyata)
-- [Struktur Repo](#-struktur-repo)
+- [Struktur Repo & API Internal](#️-struktur-repo--api-internal)
 - [Konfigurasi Lanjutan](#️-konfigurasi-lanjutan)
 - [Troubleshooting](#-troubleshooting)
 - [Disclaimer](#️-disclaimer)
 - [Berkontribusi](#-berkontribusi)
-- [Lisensi](#-lisensi)
-- [Author](#-author)
+- [Lisensi & Author](#-lisensi--author)
 
 ---
 
-## 🌟 Fitur
+## 💎 Kenapa AM Preset Finder?
 
-| # | Fitur | Keterangan |
-|---|-------|------------|
-| 1 | 🎨 CLI interaktif | Banner `pyfiglet`, panel/tabel/progress `rich`, warna cerah |
-| 2 | 💬 Komentar + balasan penuh | Paginasi `cursor` + `has_more`, `count=50` per request |
-| 3 | 🔗 Filter link streaming | Keyword `https` dicek **per item saat diterima**, bukan di akhir. Progress menampilkan `Scan / Match / Balasan match` live |
-| 4 | ⚡ 2 mode fetch | `lengkap` (cek balasan walau induk tidak match) vs `hemat` (skip request balasan jika induk tidak match) |
-| 5 | 📊 Statistik video | Caption, author, views, likes, comment count, shares, create time via `api/video/detail/` |
-| 6 | 💾 Ekspor ganda | JSON nested (`comments[].replies[]`) + Excel flat (`Komentar Utama` / `Balasan`) |
-| 7 | 🧩 Class-based | Satu class `AMPresetFinder` di `index.py` (`TikTokScraper` tetap sebagai alias), mudah di-import sebagai library |
-| 8 | 🛡️ Error handling | `403` (privat/dihapus/rate-limit), timeout, JSON abnormal, `total_reply` kosong |
-| 9 | 🔧 Dependency checker | `server.py` cek + auto-`pip install` (`requests,pandas,pyfiglet,rich,jmespath,openpyxl`) |
+Komentar video preset Alight Motion penuh dengan orang berbagi link — tapi linknya tenggelam di ratusan komentar basa-basi (*"presetnya mana bang"*, *"bagi dong"*). Tool ini memindai **semua komentar + semua balasan**, menyaring hanya yang mengandung **link preset asli**, lalu **me-print full URL-nya langsung di layar** — siap copy, tanpa buka file.
+
+| Tanpa tool | Dengan AM Preset Finder |
+|---|---|
+| Scroll ratusan komentar manual | Scan otomatis + progress live |
+| Link `vt.tiktok.com` / spam ikut kebawa | Hanya `alightcreative.com` / `alight.link` / `drive.google.com` yang lolos |
+| Copy satu-satu dari HP | Daftar bernomor + list mentah satu URL per baris |
 
 ---
 
-## 🖼️ Demo / Screenshot
+## ✨ Fitur Unggulan
+
+| | Fitur | Detail |
+|---|---|---|
+| 🧠 | **Filter domain cerdas** | Bukan sekadar cari kata `https`. URL diekstrak via regex, domain dinormalisasi (`www.`/caps/subdomain aman), lalu dicocokkan ke daftar terkonfirmasi. `vt.tiktok.com` otomatis dibuang. |
+| ⚡ | **Streaming saat fetch** | Komentar dicek **per item saat diterima dari API**, bukan ditampung semua dulu. Progress live: `Scan / Preset / Balasan preset`. |
+| 🎭 | **2 mode fetch** | `Lengkap` — balasan tetap dicek walau induknya bukan preset (tidak ada link hilang). `Hemat` — skip request balasan jika induk bukan preset (jauh lebih cepat). |
+| 🖨️ | **Print langsung di console** | Panel bernomor full-URL + tabel sumber (`User`/`Jenis`/`induk`-`balasan`) + list mentah tanpa wrap untuk copy-paste. Duplikat di-dedup (`dibagikan 2x`). |
+| 📱 | **Ringan & Termux-ready** | Default **CLI-only tanpa tulis file**. `pandas` opsional — tanpanya otomatis fallback CSV. |
+| 🎨 | **CLI premium** | Banner `pyfiglet`, panel/tabel/progress `rich`, klasifikasi jenis link (`Alight Link` / `Drive XML`). |
+| 🧩 | **Siap jadi library** | `from index import AMPresetFinder` (`TikTokScraper` tetap tersedia sebagai alias). |
+
+---
+
+## 🖼️ Demo
 
 ![AM Preset Finder Demo](img/cmd.png)
 
 ---
 
-## 🏗️ Arsitektur
+## ⚙️ Cara Kerja Singkat
 
 ```
-index.py
-└── class AMPresetFinder (alias: TikTokScraper)
-    ├── __init__()                    # requests.Session + header browser Chrome 108
-    ├── _print_banner()
-    ├── _get_video_id(url)            # dukung vm.tiktok.com / vt.tiktok.com (HEAD redirect) + /video/ID
-    ├── _get_video_details()          # GET api/video/detail/ + jmespath itemInfo.itemStruct
-    ├── _get_default_video_details()  # fallback N/A saat 403/privat
-    ├── _display_video_details()
-    ├── _parse_comment(json)          # jmespath: cid, user.unique_id, nickname, text, create_time, avatar, digg_count, reply_comment_total
-    ├── _format_timestamp() / _format_number()
-    ├── _get_replies(cid, total, progress, keyword)              # GET api/comment/list/reply/, filter per-balasan
-    ├── _get_all_comments_and_replies(keyword, skip_hemat)      # GET api/comment/list/, filter per-komentar, dispatch reply
-    ├── _filter_by_keyword(list, keyword)  # filter pasca-proses (kompatibilitas, tidak dipakai di jalur utama)
-    ├── _save_to_json() / _save_to_excel() # flat: Tipe, ID_Komentar_Induk, ID_Komentar, Username, Nickname, Komentar, Waktu, Jumlah_Like, Total_Balasan
-    ├── _display_summary_table()       # 20 komentar teratas
-    ├── _display_completion_screen()
-    └── run()                         # orkestrasi: banner → URL → detail → prompt filter → fetch streaming → save → tampil
+URL video → ekstrak video_id → paginasi komentar (cursor/has_more, 50/page)
+  → tiap komentar: ekstrak URL → cek domain preset?
+      → ya: simpan thread (+ fetch & saring balasannya)
+      → tidak: hemat? buang : fetch balasan & cek (balasan ber-preset tetap disimpan sebagai konteks)
+  → print tabel + link preset + COMPLETE!
 ```
 
-Call graph fetch:
-
-```
-run(keyword="https")
-└── _get_all_comments_and_replies
-    ├── GET api/comment/list/ (cursor loop)
-    ├── _parse_comment → cek parent_match
-    └── _get_replies (jika total_reply>0 dan tidak di-skip)
-        ├── GET api/comment/list/reply/ (cursor loop)
-        └── _parse_comment → cek keyword per-balasan
-```
-
-`server.py` bukan scraper — hanya bootstrap dependency checker (tampilan `rich`/`pyfiglet` dulu, lalu cek semua paket).
-
----
-
-## 🔌 Endpoint API
-
-Base tidak resmi (dapat berubah sewaktu-waktu oleh TikTok):
-
-| Fungsi | Method | URL | Params |
-|--------|--------|-----|--------|
-| Detail video | GET | `https://www.tiktok.com/api/video/detail/` | `aid=1988`, `aweme_id=<video_id>` |
-| Komentar utama | GET | `https://www.tiktok.com/api/comment/list/` | `aid=1988`, `aweme_id`, `count=50`, `cursor` |
-| Balasan | GET | `https://www.tiktok.com/api/comment/list/reply/` | `aid=1988`, `aweme_id`, `comment_id`, `count=50`, `cursor` |
-
-Respons: `{ comments: [...], has_more: bool, cursor: int, status_code: int }`.
-Paginasi berhenti saat `comments == []` atau `has_more == false`.
-Jeda `sleep(1)` antar page komentar, `sleep(0.5)` antar page balasan untuk menahan rate-limit.
-
-> TikTok tidak menyediakan filter server-side (`?filter=https` tidak ada), jadi filter keyword selalu client-side. Mode streaming tetap harus memindai semua page — yang dihemat adalah memori/file output (mode lengkap) atau jumlah request balasan (mode hemat).
-
----
-
-## ⚙️ Prerequisites
-
-- **Python 3.8+**
-- Koneksi internet langsung ke `tiktok.com` (tanpa proxy khusus)
-- Terminal yang mendukung ANSI color (Windows Terminal / Linux / macOS)
+> TikTok tidak punya filter server-side, jadi semua page tetap dipindai — yang cerdas adalah **penyaringannya**: regex URL + normalisasi domain + klasifikasi jenis, per item, saat streaming.
 
 ---
 
@@ -126,42 +93,41 @@ git clone https://github.com/Ikyletwar/tiktok-scraper.git
 cd tiktok-scraper
 ```
 
-Opsi A — otomatis (disarankan):
+**PC / Laptop:**
 
 ```bash
-python server.py
-# cek rich + pyfiglet dulu, lalu requests, pandas, pyfiglet, rich, jmespath
+pip install --upgrade pip
+pip install requests rich pyfiglet jmespath
+python server.py   # cek + auto-install dependensi (opsional)
 ```
 
-Opsi B — manual:
+**Termux (Android):**
 
 ```bash
-pip install requests pandas pyfiglet rich jmespath openpyxl
+pkg update && pkg upgrade
+pkg install python git
+git clone https://github.com/Ikyletwar/tiktok-scraper.git
+cd tiktok-scraper
+pip install --upgrade pip
+pip install requests rich pyfiglet jmespath
 ```
 
-> `openpyxl` dibutuhkan oleh `pandas.DataFrame.to_excel()`. Jika belum ada, `python server.py` + `pip install openpyxl` akan menutup error `Missing optional dependency 'openpyxl'`.
+> Tanpa `pandas`/`openpyxl` pun jalan penuh (mode CLI-only). Tambahkan keduanya hanya jika butuh ekspor `.xlsx`.
 
 ---
 
 ## 🚀 Penggunaan
 
-Perintah yang benar (nama file `index.py`):
-
 ```bash
 python index.py
 ```
 
-Alur interaktif:
-
-1. Tempel link video saat prompt `» Masukkan Link Video TikTok`, contoh:
-   - `https://www.tiktok.com/@rvennprst/video/7686108135475580181`
-   - `https://vt.tiktok.com/ZSUc5CWKy/` (short link otomatis di-resolve via `HEAD`)
-2. Tunggu detail video (jika `403` → dipakai fallback `author=N/A`, scraping komentar tetap jalan).
-3. Jawab prompt filter:
-   - `» Hanya ambil komentar berisi link (https)? Filter langsung saat fetch [y/n] (y):`
-   - Jika `y`, jawab mode: `» Mode hemat ...? y=cepat tapi balasan-link bisa hilang, n=lengkap [y/n] (n):`
-4. Progress menampilkan `Scan` (total dipindai) vs `Match` (thread disimpan) secara live.
-5. Hasil tersimpan sebagai `am_preset_<VIDEO_ID>.json` + `.xlsx`, lalu tabel 20 teratas + layar `COMPLETE!` ditampilkan.
+1. Tempel link video saat prompt — mendukung link penuh maupun pendek:
+   - `https://www.tiktok.com/@user/video/7686108135475580181`
+   - `https://vt.tiktok.com/ZSbHuVCGU/` (otomatis di-resolve)
+2. `» Hanya ambil komentar ber-link preset AM?` → `y`
+3. `» Mode hemat?` → `n` = lengkap (disarankan), `y` = cepat
+4. Tunggu progress `Scan / Preset / Balasan preset`, lalu copy link dari layar.
 
 Sebagai library:
 
@@ -169,169 +135,190 @@ Sebagai library:
 from index import AMPresetFinder
 s = AMPresetFinder()
 s.video_id = "7686108135475580181"
-data = s._get_all_comments_and_replies(keyword="https", skip_replies_if_parent_miss=False)
-print(len(data))
+threads = s._get_all_comments_and_replies(
+    preset_domains=AMPresetFinder.PRESET_DOMAINS,  # default cerdas
+    skip_replies_if_parent_miss=False,            # False = lengkap, True = hemat
+)
+links = s._collect_preset_links(threads)
+print(links[0]["url"], links[0]["kind"])
 ```
 
 ---
 
-## 🔗 Mode Filter Link (Streaming)
+## 🎭 Mode Filter
 
-| Mode | Cara pilih | Request balasan | Hasil | Cocok untuk |
-|------|------------|-----------------|-------|-------------|
-| Lengkap (default) | `y` lalu `n` | Tetap fetch semua balasan untuk dicek satu per satu | Induk tanpa link tapi balasannya ada link **tetap disimpan sebagai konteks** | Panen link exhaustive, tidak ada yang hilang |
-| Hemat | `y` lalu `y` | Skip `GET reply` jika induk tidak mengandung keyword | Hanya induk ber-link yang disimpan. Lebih cepat, request jauh lebih sedikit | Video raksasa, butuh cepat, rela kehilangan reply-only link |
-| Tanpa filter | `n` | Fetch semua | Semua komentar + balasan | Arsip penuh / analisis sentimen |
+| Mode | Pilih | Request balasan | Hasil | Cocok untuk |
+|---|---|---|---|---|
+| **Lengkap** (default) | `y` → `n` | Semua balasan di-fetch & dicek | Induk biasa + balasan ber-preset **tetap disimpan sebagai konteks**. Nol link hilang. | Panen exhaustive |
+| **Hemat** | `y` → `y` | Di-skip bila induk bukan preset | Hanya thread ber-preset. Jauh lebih sedikit request. | Video raksasa / koneksi lemot |
+| **Tanpa filter** | `n` | Semua | Arsip penuh semua komentar | Riset / sentimen |
 
-Contoh hasil uji mock (3 komentar, 2 punya balasan):
+---
 
-- `lengkap` → `[(1->[1r1]), (2->[])]` (thread `1` dipertahankan karena balasannya match)
-- `hemat` → `[(2->[])]` (thread `1` hilang)
-- `nofilter` → semua 3 thread
-
-Ganti keyword (misal hanya `mega.nz`):
-
-```python
-s._get_all_comments_and_replies(keyword="mega.nz")
-# atau pasca-proses:
-s._filter_by_keyword(all_comments, keyword="drive.google")
-```
-
-Pencocokan selalu **case-insensitive** dan **aman terhadap `None`**.
-
-### Daftar domain preset terkonfirmasi
+## 🔗 Domain Preset Terkonfirmasi
 
 ```python
 PRESET_DOMAINS = [
-    "alightcreative.com",  # Link Resmi: alightcreative.com/am/share/... → buka otomatis di AM
+    "alightcreative.com",  # Link Resmi: .../am/share/... → terbuka otomatis di Alight Motion
     "alight.link",         # Link pendek resmi → impor otomatis ke AM
-    "drive.google.com",    # File XML mentah: drive.google.com/file/d/... → unduh + impor manual
+    "drive.google.com",    # File XML mentah: .../file/d/... → unduh lalu impor manual
 ]
 ```
 
-Klasifikasi otomatis per URL (`kind`): `alight_link` (share resmi), `drive_xml` (XML Drive), `preset_link` (domain preset tapi pola lain), `other_link` (diabaikan filter). Contoh nyata yang lolos: `https://alightcreative.com/am/share/u/.../p/...`, `https://alight.link/7sgfjYKk2fK1CqUu8`, `https://drive.google.com/file/d/1jONrJttOMJBUp_UTuKnC7JAGRoW8yq4F/view`. Yang dibuang: `vt.tiktok.com`, link non-preset lain. Setiap komentar yang disimpan membawa field `preset_links: [{url, domain, kind}]` di JSON dan kolom `Link_Preset` + `Jenis_Preset` di Excel.
+Klasifikasi otomatis (`kind`):
+
+| `kind` | Arti | Contoh |
+|---|---|---|
+| `alight_link` | Share resmi, klik → impor otomatis | `https://alightcreative.com/am/share/u/…/p/…`, `https://alight.link/7sgfjYKk2fK1CqUu8` |
+| `drive_xml` | XML mentah di Drive | `https://drive.google.com/file/d/1jONrJttOMJBUp_UTuKnC7JAGRoW8yq4F/view` |
+| `preset_link` | Domain preset, pola lain | `https://alightcreative.com/blog/...` (tetap disimpan) |
+| *dibuang* | Bukan preset | `vt.tiktok.com`, `tiktok.com`, link lain |
+
+Pencocokan **case-insensitive**, tahan `www.`, sub-domain, tanda baca tepi (`(url).`, `url...`), dan aman terhadap teks kosong/`None`.
+
+<details>
+<summary><b>Contoh nyata yang lolos ✅ / dibuang ❌</b></summary>
+
+✅ `https://alightcreative.com/am/share/u/sAcfaVla13XF1gd6h08dnyU0SUS2/p/2cd68b9e-a8f9-45b7-a6ab-ab5dcd5d9ae7`
+✅ `https://alight.link/7sgfjYKk2fK1CqUu8`
+✅ `https://drive.google.com/file/d/1oOsPD4mXSuzSMQ-GTRzH-wyNVpDrfw89/view`
+❌ `https://vt.tiktok.com/ZSqgnDSDk/` (bukan preset)
+❌ `presetnya mana bang` (tanpa link)
+
+</details>
 
 ---
 
-## 📄 Skema Output
+## 🖥️ Tampilan Console
 
-### JSON — `am_preset_<VIDEO_ID>.json`
+Setiap run yang menemukan preset menampilkan 3 lapis (berurutan):
+
+1. **Tabel ringkasan** — `Tinjauan Preset AM` (20 teratas: user, link terpotong, likes, jml balasan).
+2. **Panel link** — `🎨 N Link Preset Ditemukan`: full URL bernomor + `(Jenis | @user | dibagikan Nx)`.
+3. **Tabel sumber** — tiap URL unik + user pertama + asal `induk`/`balasan`.
+4. **List mentah** — satu URL per baris, `soft_wrap` (tidak terpotong logikanya) — bagian terbaik untuk copy-paste / pipe ke file:
+
+```bash
+python index.py | grep -o 'https://[^ ]*'
+```
+
+---
+
+## 💾 Ekspor File (Opsional)
+
+Default **mati** (CLI-only, cocok untuk Termux / HP). Aktifkan di baris atas `index.py`:
+
+```python
+ENABLE_SAVE_JSON = True    # → am_preset_<VIDEO_ID>.json
+ENABLE_SAVE_EXCEL = True   # → am_preset_<VIDEO_ID>.xlsx (butuh pandas+openpyxl) / .csv fallback
+```
+
+| File | Isi |
+|---|---|
+| `am_preset_<ID>.json` | Nested `comments[].replies[]`, tiap item membawa `preset_links: [{url, domain, kind}]` + `preset_kinds` |
+| `am_preset_<ID>.xlsx` / `.csv` | Flat per baris + kolom `Link_Preset` (`; `-joined) dan `Jenis_Preset` |
+
+---
+
+## 🧾 Skema Data
+
+Komentar (induk & balasan) setelah parsing:
 
 ```json
 {
-  "caption": "@author: caption video",
-  "date_now": "2025-10-24T12:19:48",
-  "video_url": "https://...",
-  "video_stats": { "view_count": 0, "like_count": 0, "comment_count": 0, "share_count": 0 },
-  "comments": [
-    {
-      "cid": "7554751430977897223",
-      "username": "Siapa?",
-      "nickname": "Anony",
-      "comment": "alat nya seharga beat...",
-      "create_time": "2025-09-27 12:54:05 UTC",
-      "avatar": "https://...",
-      "digg_count": 17,
-      "total_reply": 1,
-      "replies": [
-        {
-          "cid": "7555830389871051536",
-          "username": "Siapa?",
-          "nickname": "Anony",
-          "comment": "makanya ga usah...",
-          "create_time": "2025-09-30 10:41:02 UTC",
-          "avatar": "https://...",
-          "digg_count": 1,
-          "total_reply": null,
-          "replies": []
-        }
-      ]
-    }
-  ]
+  "cid": "7554751430977897223",
+  "username": "epan_761",
+  "nickname": "FAN|~astro",
+  "comment": "nih https://alight.link/abc123",
+  "create_time": "2025-09-27 12:54:05 UTC",
+  "avatar": "https://...",
+  "digg_count": 17,
+  "total_reply": 1,
+  "preset_links": [{ "url": "https://alight.link/abc123", "domain": "alight.link", "kind": "alight_link" }],
+  "preset_kinds": ["alight_link"],
+  "replies": []
 }
 ```
-
-### Excel — `am_preset_<VIDEO_ID>.xlsx`
-
-Flat, satu baris per komentar/balasan:
-
-| Tipe | ID_Komentar_Induk | ID_Komentar | Username | Nickname | Komentar | Waktu | Jumlah_Like | Total_Balasan |
-|------|-------------------|-------------|----------|----------|----------|-------|-------------|---------------|
-| Komentar Utama | (kosong) | cid induk | ... | ... | teks | `YYYY-MM-DD HH:MM:SS UTC` | int | int |
-| Balasan | cid induk | cid balasan | ... | ... | teks | ... | int | 0 |
 
 ---
 
 ## ✅ Contoh Sesi Nyata
 
-Video `7686108135475580181` (mode lengkap, keyword `https`):
+Video `7489012581231824136` (mode hemat, 13 komentar dipindai):
 
 ```
-✅ Scan 268 komentar, dapat 22 thread + 16 balasan mengandung 'https'.
-💾 am_preset_7686108135475580181.json ✅
-💾 am_preset_7686108135475580181.xlsx ✅
+✅ Scan 13 komentar, dapat 2 thread + 0 balasan preset
+🎨 1 Link Preset Ditemukan (dibagikan 2x)
+1. https://alightcreative.com/am/share/u/GIZDmEkL9OhCOYGci3w6Xrm9FjM2/p/7yU94IwVCo-682954025947399b
 ```
 
-Isi dominan: `https://alightcreative.com/am/share/...` (bagi preset XML), plus `https://vt.tiktok.com/...`.
-Video `7554738914985020690` (17 induk / 17 balasan) → `0` match `https`/`http`, artinya tidak ada link sama sekali.
+Video `7686108135475580181` (mode lengkap): `268` komentar → `22` thread + `16` balasan ber-preset, dominan `alightcreative.com/am/share/...`.
 
 ---
 
-## 🗂️ Struktur Repo
+## 🏗️ Struktur Repo & API Internal
 
 ```
 tiktok-scraper/
-├── index.py        # finder utama (class AMPresetFinder)
+├── index.py        # AMPresetFinder: fetch + filter + display + ekspor
 ├── server.py       # dependency checker + auto-install
 ├── README.md       # dokumentasi ini
-├── .gitignore      # __pycache__, *.pyc, output am_preset_* / tiktok_comments_* (legacy) 
-├── img/
-│   └── cmd.png     # screenshot demo
-└── am_preset_<ID>.json / .xlsx  # hasil (di-ignore git, tidak di-push)
+├── .gitignore      # __pycache__, *.pyc, am_preset_* / tiktok_comments_* (legacy)
+└── img/cmd.png     # screenshot demo
 ```
+
+| Metode | Peran |
+|---|---|
+| `_get_video_id(url)` | Ekstrak ID; resolve `vm/vt.tiktok.com` via `HEAD` |
+| `_get_video_details()` | `GET api/video/detail/` + `jmespath`; fallback `N/A` saat `403` |
+| `_parse_comment()` | Normalisasi 1 komentar + `preset_links` |
+| `extract_urls / extract_preset_links / has_preset_link` | Mesin filter domain (classmethod, bisa dipakai mandiri) |
+| `_get_replies(cid, total, progress, preset_domains)` | Paginasi balasan + saring per item |
+| `_get_all_comments_and_replies(preset_domains, skip_hemat)` | Paginasi komentar + orkestrasi filter streaming |
+| `_collect_preset_links / _display_preset_links` | Kumpulkan + print link ke console |
+| `_save_to_json / _save_to_excel` | Ekspor (di belakang toggle) |
+| `run()` | Orkestrasi interaktif penuh |
+
+Endpoint (tidak resmi, dapat berubah): `api/video/detail/`, `api/comment/list/`, `api/comment/list/reply/` — params `aid=1988`, `count=50`, `cursor`; berhenti saat `comments == []` / `has_more == false`; jeda `1s`/`0.5s` anti rate-limit.
 
 ---
 
 ## 🛠️ Konfigurasi Lanjutan
 
-- Ubah ukuran page: `count: 50` di `_get_all_comments_and_replies()` / `_get_replies()` (maksimal praktis 50–100).
-- Ubah jeda: `time.sleep(1)` (komentar) / `time.sleep(0.5)` (balasan) — naikkan jika sering `429/403`.
-- Ganti User-Agent di `__init__()` jika diblokir.
-- Timeout per request: `timeout=10` di semua `session.get()`.
+- **Tambah domain preset** — edit `PRESET_DOMAINS`, mis. `"mega.nz"`, `"mediafire.com"`.
+- **Ukuran page** — `count: 50` (praktis 50–100).
+- **Jeda** — `time.sleep(1)` komentar / `0.5` balasan; naikkan bila sering `429/403`.
+- **User-Agent / timeout** — di `__init__()` dan tiap `session.get(timeout=10)`.
 
 ---
 
 ## ❓ Troubleshooting
 
 | Gejala | Penyebab | Solusi |
-|--------|----------|--------|
-| `403 Forbidden` di `api/video/detail/` | Video privat/dihapus atau IP di-rate-limit | Scraper lanjut dengan fallback `N/A`; coba VPN/IP lain atau tunggu |
-| `Selesai Komentar Utama Total: 0` | Video tanpa komentar / semua komentar difilter privat | Jawab `n` (tanpa filter) untuk memastikan |
-| `Missing optional dependency 'openpyxl'` | `openpyxl` belum install | `pip install openpyxl` |
-| Dijalankan sebagai `python tiktok_scrapper.py` → `No such file` | Nama file salah (typo dobel-p) | Nama yang benar: `python index.py` |
-| Filter `y` menghasilkan `0 match` | Memang tidak ada link di thread itu | Coba keyword `http` / cek file tanpa filter dulu |
-| Balasan-link hilang di mode hemat | Sesuai desain hemat (skip fetch) | Ulangi dengan mode `lengkap` (`n`) |
+|---|---|---|
+| `403` di `api/video/detail/` | Video privat/dihapus atau IP di-rate-limit (umum di IP seluler) | Otomatis fallback `N/A`, komentar tetap diambil; coba IP lain / tunggu |
+| `Total: 0` / tidak ada preset | Video memang tanpa link preset | Jawab `n` (tanpa filter) untuk memastikan |
+| `Missing optional dependency 'openpyxl'` | Ekspor Excel tanpa `openpyxl` | `pip install openpyxl pandas`, atau biarkan CLI-only |
+| `No such file: tiktok_scrapper.py` | Typo nama lama (dobel-p) | Yang benar: `python index.py` |
+| Balasan ber-preset hilang (hemat) | Sesuai desain hemat | Ulangi dengan mode lengkap (`n`) |
+| Link terpotong saat copy dari panel | Wrap visual panel (bukan data) | Copy dari bagian **list mentah** paling bawah |
 
 ---
 
 ## ⚠️ Disclaimer
 
-Scraping TikTok melanggar **Syarat dan Ketentuan (ToS)** mereka. Skrip ini membuat **banyak request API** dan dapat menyebabkan blokir IP sementara/permanen. Gunakan dengan risiko sendiri dan secara bertanggung jawab.
+Scraping melanggar **ToS TikTok**; tool ini membanjiri API dengan banyak request dan dapat menyebabkan blokir IP sementara/permanen. Gunakan dengan risiko dan tanggung jawab sendiri.
 
 ---
 
 ## 🤝 Berkontribusi
 
-Fork → buat branch → pull request. Untuk bug, buka issue dengan menyertakan: video ID (bukan full URL privat), log terminal, dan `python --version` + `pip freeze`.
+Fork → branch → pull request. Saat lapor bug sertakan: video ID, log terminal, `python --version`, dan daftar domain preset baru bila ada yang belum tercakup.
 
 ---
 
-## 📜 Lisensi
+## 📜 Lisensi & Author
 
-MIT. Lihat file `LICENSE` (tambahkan jika belum ada).
+MIT — lihat `LICENSE` (tambahkan jika belum ada).
 
----
-
-## 👨‍💻 Author
-
-Dibuat dengan ❤️ oleh [Nihongo](https://github.com/Ikyletwar).
+Dibuat dengan ❤️ oleh **[Nihongo](https://github.com/Ikyletwar)** · `AM Preset Finder v5`
